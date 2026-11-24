@@ -1,0 +1,65 @@
+# Cloud-Chat V2 Deterministic Security Rules Policy Definition
+version: "1.0"
+
+rules:
+  # EC2 Policies
+  - id: CKV_AWS_PUBLIC_IP
+    service: ec2
+    title: EC2 Instance Should Not Have Public IP Assigned
+    severity: HIGH
+    resource_type: aws_instance
+    attribute: associate_public_ip_address
+    expected_value: false
+    explanation: Instances exposed directly to the public internet increase the attack surface.
+    remediation: Disable public IP association and place the instance in a private subnet with NAT gateway access.
+
+  - id: CKV_AWS_EBS_ENCRYPTION
+    service: ec2
+    title: EC2 EBS Root Volume Must Be Encrypted
+    severity: HIGH
+    resource_type: aws_instance
+    attribute: root_block_device.encrypted
+    expected_value: true
+    explanation: Unencrypted EBS volumes expose sensitive data at rest to unauthorized access.
+    remediation: Enable KMS encryption on the EBS root volume configuration.
+
+  - id: CKV_AWS_SG_SSH_OPEN
+    service: ec2
+    title: Security Group Ingress Should Not Allow 0.0.0.0/0 on SSH Port 22
+    severity: HIGH
+    resource_type: aws_security_group
+    port: 22
+    disallowed_cidr: "0.0.0.0/0"
+    explanation: Opening SSH to the entire internet allows brute-force attacks and vulnerability exploitation.
+    remediation: Restrict port 22 access to specific administrator IP CIDRs or use AWS SSM Session Manager.
+
+  - id: CKV_AWS_SG_RDP_OPEN
+    service: ec2
+    title: Security Group Ingress Should Not Allow 0.0.0.0/0 on RDP Port 3389
+    severity: HIGH
+    resource_type: aws_security_group
+    port: 3389
+    disallowed_cidr: "0.0.0.0/0"
+    explanation: Opening RDP to the entire internet risks brute-force and remote code execution exploits.
+    remediation: Restrict port 3389 access to specific corporate network CIDRs or VPNs.
+
+  # S3 Policies
+  - id: CKV_AWS_S3_PUBLIC_BLOCK
+    service: s3
+    title: S3 Bucket Must Have Public Access Block Enabled
+    severity: HIGH
+    resource_type: aws_s3_bucket_public_access_block
+    expected_value: true
+    explanation: Unblocked public access on S3 buckets frequently causes catastrophic data leaks.
+    remediation: Enable block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets.
+
+  # RDS Policies
+  - id: CKV_AWS_RDS_PUBLIC
+    service: rds
+    title: RDS Instance Must Not Be Publicly Accessible
+    severity: HIGH
+    resource_type: aws_db_instance
+    attribute: publicly_accessible
+    expected_value: false
+    explanation: Database instances should reside in private subnets with restricted ingress.
+    remediation: Set publicly_accessible to false and attach private database subnets.
